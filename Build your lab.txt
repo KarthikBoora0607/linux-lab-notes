@@ -1,0 +1,48 @@
+1. Verifying downloads
+
+A SHA256 checksum is a file’s fingerprint. A match proves the file isn’t corrupted.
+The checksum only partly protects against tampering, because an attacker who controls the server can replace both files. A GPG signature (the .asc file) proves who published it.
+You compared hashes in PowerShell with Get-FileHash. winget does the same check automatically.
+
+2. Virtualisation and boot
+
+VirtualBox cloud/container images are pre-built disks. The installer ISO is what you need for RHCSA practice.
+Rocky 10 needs an x86-64-v3 CPU (AVX2). Hyper-V on Windows can interfere with this.
+BIOS vs UEFI: the BIOS boot path hung, and UEFI fixed it.
+The “Test this media” option failed with result NA even though the ISO was fine. Choosing plain “Install” avoided it.
+Reading boot output: [ OK ] and [FAILED] lines are systemd units starting or failing.
+
+3. Networking
+
+NAT adapter: outbound internet access, but the VM can’t be reached from Windows (VirtualBox gives every NAT VM 10.0.2.15).
+Host-only adapter: a private network between Windows and the VMs (192.168.56.0/24), used for SSH and VM-to-VM traffic.
+Subnets / CIDR: /24 means 254 usable addresses that share the first three octets. Separate subnets can only talk through a router, and firewalls decide what’s allowed. This is how your company’s BU networks work.
+Static vs DHCP: servers need fixed IPs. You set one with nmcli con mod ... ipv4.method manual, and NetworkManager stores it in /etc/NetworkManager/system-connections/.
+Only one default gateway (through NAT). Setting a gateway on host-only too would send internet traffic down the wrong interface.
+TTL clues: 64 means Linux, 128 means Windows.
+
+4. Troubleshooting method: check one layer at a time
+
+VM → Windows ping failed. ip neigh showed ARP was working, so the network was fine and a firewall was dropping the ping. Fixed with a Windows firewall rule scoped to the lab subnet only.
+GitHub SSH timed out. Test-NetConnection showed port 22 blocked and 443 open, so you used SSH over port 443 (ssh.github.com).
+PowerShell said git wasn’t recognised right after installing it, because each process reads PATH only when it starts. The bash prompt still showing localhost was the same kind of problem.
+
+5. Linux administration
+
+hostnamectl set-hostname, useradd -m -G wheel, and passwd. The wheel group grants sudo.
+id, ip -br addr, ip route, and nmcli con show.
+Use a personal user with sudo rather than root, so actions are logged against a name.
+sshd -T shows the SSH server’s real configuration, including the drop-in files.
+last, lastb and journalctl -u sshd show the login history that security investigations start from.
+
+6. SSH
+
+Host key fingerprint and known_hosts: trust on first use, with a loud warning if a server’s key ever changes.
+Key pairs: the private key stays on your laptop and the public key goes into authorized_keys. Login works by signing a challenge, so the key itself is never sent.
+chmod 700 ~/.ssh and chmod 600 authorized_keys matter, because SSH refuses keys with loose permissions.
+~/.ssh/config provides shortcuts (ssh rocky1) and routing overrides (GitHub on port 443).
+RHEL 10 blocks root SSH login with a password by default.
+
+7. Git and GitHub
+
+init → add → commit → remote add → push, and after that, add/commit/push 
